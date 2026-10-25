@@ -1,0 +1,23 @@
+# Example: post the scorecard every Monday morning. Disabled until you set ENABLE_SCORECARD=true.
+# Secrets: PEEKPANDA_TOKEN (PeekPanda API key), SCORECARD_WEBHOOK_URL (Slack or Discord incoming webhook).
+name: weekly-scorecard
+on:
+  schedule:
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+jobs:
+  scorecard:
+    if: vars.ENABLE_SCORECARD == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Scorecard
+        env:
+          PEEKPANDA_TOKEN: ${{ secrets.PEEKPANDA_TOKEN }}
+          SCORECARD_WEBHOOK_URL: ${{ secrets.SCORECARD_WEBHOOK_URL }}
+        run: |
+          # Your app first, then up to 9 rivals. Replace these example ids.
+          node cli.js 1000000001 1000000002 1000000003 --webhook "$SCORECARD_WEBHOOK_URL" >> "$GITHUB_STEP_SUMMARY"

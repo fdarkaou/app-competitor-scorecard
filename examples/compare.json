@@ -1,0 +1,33 @@
+{
+  "subjectStoreId": "1000000001",
+  "data": [
+    {
+      "app": { "storeId": "1000000001", "name": "Example Meal Planner", "iconUrl": null, "genre": "Food & Drink", "category": "food_and_drink", "developerName": "Example Labs", "rating": 4.6, "totalRatings": 8120 },
+      "monthlyInstalls": { "kind": "range", "scope": "worldwide", "range": { "low": 18000, "mid": 36000, "high": 75000 }, "observedAt": "2026-10-24T00:00:00.000Z",
+        "previous": { "kind": "range", "scope": "worldwide", "range": { "low": 15000, "mid": 30000, "high": 62000 }, "observedAt": "2026-09-24T00:00:00.000Z" } },
+      "monthlyRevenue": { "kind": "range", "scope": "worldwide", "range": { "low": 9000, "mid": 21000, "high": 45000 }, "observedAt": "2026-10-24T00:00:00.000Z",
+        "previous": { "kind": "range", "scope": "worldwide", "range": { "low": 10000, "mid": 23000, "high": 50000 }, "observedAt": "2026-09-24T00:00:00.000Z" } },
+      "currency": "USD"
+    },
+    {
+      "app": { "storeId": "1000000002", "name": "Example Calorie Counter", "iconUrl": null, "genre": "Health & Fitness", "category": "health_and_fitness", "developerName": "Sample Health Co", "rating": 4.8, "totalRatings": 152300 },
+      "monthlyInstalls": { "kind": "range", "scope": "worldwide", "range": { "low": 210000, "mid": 420000, "high": 860000 }, "observedAt": "2026-10-24T00:00:00.000Z",
+        "previous": { "kind": "range", "scope": "worldwide", "range": { "low": 230000, "mid": 460000, "high": 940000 }, "observedAt": "2026-09-24T00:00:00.000Z" } },
+      "monthlyRevenue": { "kind": "range", "scope": "worldwide", "range": { "low": 300000, "mid": 640000, "high": 1300000 }, "observedAt": "2026-10-24T00:00:00.000Z", "previous": null },
+      "currency": "USD"
+    },
+    {
+      "app": { "storeId": "1000000003", "name": "Example Grocery List", "iconUrl": null, "genre": "Food & Drink", "category": "food_and_drink", "developerName": "Demo Apps Ltd", "rating": 4.4, "totalRatings": 3900 },
+      "monthlyInstalls": { "kind": "range", "scope": "worldwide", "range": { "low": 7000, "mid": 14000, "high": 29000 }, "observedAt": "2026-10-24T00:00:00.000Z", "previous": null },
+      "monthlyRevenue": { "kind": "below_floor", "scope": "worldwide", "ceiling": 5000, "observedAt": "2026-10-24T00:00:00.000Z", "previous": null },
+      "currency": "USD"
+    },
+    {
+      "app": { "storeId": "1000000004", "name": "Example Recipe Box", "iconUrl": null, "genre": "Food & Drink", "category": "food_and_drink", "developerName": "Demo Apps Ltd", "rating": null, "totalRatings": null },
+      "monthlyInstalls": null,
+      "monthlyRevenue": null,
+      "currency": "USD"
+    }
+  ],
+  "missingStoreIds": ["1000000005"]
+}

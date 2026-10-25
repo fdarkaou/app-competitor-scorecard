@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App competitor scorecard: downloads and revenue vs App Store rivals</title>
+<meta name="description" content="Paste a PeekPanda competitor comparison and see your iOS app next to up to 9 rivals: rating, ratings, monthly download and revenue estimate ranges and month-over-month change. Runs in your browser.">
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 1040px; margin: 2rem auto; padding: 0 1rem; color: #1b1b1f; }
+  textarea { width: 100%; min-height: 160px; font: 13px ui-monospace, monospace; }
+  button, select { padding: .45rem .9rem; margin: .5rem .5rem .5rem 0; cursor: pointer; }
+  table { border-collapse: collapse; width: 100%; margin-top: 1rem; font-size: 14px; }
+  th, td { border-bottom: 1px solid #ddd; padding: .4rem .5rem; text-align: left; vertical-align: top; }
+  td.n { text-align: right; } tr.you td { background: #fff8e1; font-weight: 600; }
+  .up { color: #1a7f37; } .down { color: #cf222e; }
+  .muted { color: #777; } .err { color: #cf222e; white-space: pre-wrap; }
+  pre { background: #f6f8fa; padding: .75rem; overflow-x: auto; font-size: 13px; }
+  svg text { font: 12px system-ui, sans-serif; fill: #333; }
+  footer { margin-top: 2.5rem; font-size: 13px; color: #555; }
+</style>
+</head>
+<body>
+<h1>App competitor scorecard</h1>
+<p>Put your iOS app next to its App Store rivals: rating, number of ratings, monthly downloads and monthly revenue, with the change since last month. Paste one competitor comparison response below. Nothing leaves your browser.</p>
+<textarea id="in" spellcheck="false" placeholder='{"subjectStoreId":"...","data":[{"app":{...},"monthlyInstalls":{...},"monthlyRevenue":{...}}],"missingStoreIds":[]}'></textarea>
+<div>
+  <button id="go">Build scorecard</button>
+  <button id="ex">Load example data</button>
+  <label>Sort and chart by <select id="by"><option value="installs">monthly downloads</option><option value="revenue">monthly revenue</option></select></label>
+  <button id="csv" disabled>Download CSV</button>
+</div>
+<div id="err" class="err"></div>
+<div id="out"></div>
+
+<h2>Where to get the JSON</h2>
+<p>The input is the comparison response from <a href="https://peekpanda.com">PeekPanda</a>, an iOS competitor catalogue that keeps dated evidence and nightly download and revenue estimates for each app. Ask for your app first, then up to nine rivals:</p>
+<pre>curl --get https://api.peekpanda.com/v1/competitors/compare \
+  -H "Authorization: Bearer $PEEKPANDA_TOKEN" \
+  -H 'x-genviral-tenancy: personal' \
+  --data-urlencode 'storeIds=1000000001,1000000002,1000000003'</pre>
+<p>Over MCP this is the <code>search_apps</code> tool with action <code>compare</code>. You need a PeekPanda account and an API key; the <a href="https://peekpanda.com/docs/compare-competitors">compare competitors reference</a> lists the fields and errors.</p>
+
+<h2>How to read it</h2>
+<ul>
+  <li>Downloads and revenue are worldwide monthly estimate ranges, not numbers reported by Apple or the developer. The bar is the mid estimate; the thin line spans low to high.</li>
+  <li>MoM compares this month's mid estimate with the one a month earlier. It is blank when either month is missing or below the floor.</li>
+  <li>"unknown" means there is no nightly score for that app. It is unknown, not zero.</li>
+</ul>
+
+<footer>Open source: <a href="https://github.com/fdarkaou/app-competitor-scorecard">github.com/fdarkaou/app-competitor-scorecard</a> (Node CLI, Slack or Discord post, weekly GitHub Actions example). Example data is made up.</footer>
+
+<script type="module">
+import { toRows, sortRows, describe, pct, compact, toCsv } from './scorecard.js';
+const $ = (id) => document.getElementById(id);
+let last = null;
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mom = (x) => x == null ? '' : `<span class="${x > 0 ? 'up' : x < 0 ? 'down' : ''}">${pct(x)}</span>`;
+
+function chart(rows, by) {
+  const key = by === 'revenue' ? 'revenue' : 'installs';
+  const ranges = rows.map((r) => r[key]?.kind === 'range' ? r[key].range : null);
+  const max = Math.max(1, ...ranges.filter(Boolean).map((g) => g.high));
+  const W = 900, L = 220, R = 90, H = 28, w = W - L - R;
+  const parts = rows.map((r, i) => {
+    const y = 10 + i * H, g = ranges[i], est = r[key];
+    let body;
+    if (g) {
+      const x = (v) => L + (v / max) * w;
+      body = `<rect x="${L}" y="${y + 4}" width="${x(g.mid) - L}" height="14" fill="${r.isSubject ? '#f0a500' : '#5b8def'}"/>
+        <line x1="${x(g.low)}" x2="${x(g.high)}" y1="${y + 11}" y2="${y + 11}" stroke="#333"/>
+        <text x="${x(g.high) + 6}" y="${y + 15}">${by === 'revenue' ? '$' : ''}${compact(g.mid)}</text>`;
+    } else body = `<text x="${L}" y="${y + 15}" class="muted">${esc(describe(est, by === 'revenue'))}</text>`;
+    return `<text x="${L - 8}" y="${y + 15}" text-anchor="end">${esc(r.name.length > 28 ? r.name.slice(0, 27) + '…' : r.name)}</text>${body}`;
+  });
+  return `<svg viewBox="0 0 ${W} ${20 + rows.length * H}" width="100%" role="img" aria-label="Monthly ${by} estimates">${parts.join('')}</svg>`;
+}
+
+function render() {
+  $('err').textContent = ''; $('out').innerHTML = ''; $('csv').disabled = true;
+  try { last = JSON.parse($('in').value); } catch (e) { $('err').textContent = 'That is not valid JSON: ' + e.message; return; }
+  if (!Array.isArray(last?.data)) { $('err').textContent = 'Expected an object with a "data" array (the GET /v1/competitors/compare response).'; return; }
+  const by = $('by').value;
+  const rows = sortRows(toRows(last), by);
+  const trs = rows.map((r) => `<tr class="${r.isSubject ? 'you' : ''}"><td>${esc(r.name)}${r.isSubject ? ' (you)' : ''}<div class="muted">${esc(r.developer)}</div></td>
+    <td class="n">${r.rating ?? ''}</td><td class="n">${compact(r.totalRatings)}</td>
+    <td>${esc(describe(r.installs))}</td><td class="n">${mom(r.installsChange)}</td>
+    <td>${esc(describe(r.revenue, true))}</td><td class="n">${mom(r.revenueChange)}</td><td>${r.scoredAt}</td></tr>`).join('');
+  const missing = last.missingStoreIds?.length ? `<p class="muted">Not in the catalogue: ${last.missingStoreIds.map(esc).join(', ')}</p>` : '';
+  $('out').innerHTML = chart(rows, by) + `<table><thead><tr><th>App</th><th>Rating</th><th>Ratings</th><th>Monthly downloads</th><th>MoM</th><th>Monthly revenue</th><th>MoM</th><th>Scored</th></tr></thead><tbody>${trs}</tbody></table>` + missing;
+  $('csv').disabled = false;
+}
+
+$('go').onclick = render;
+$('by').onchange = () => last && render();
+$('ex').onclick = async () => { $('in').value = await (await fetch('examples/compare.json')).text(); render(); };
+$('csv').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([toCsv(last, $('by').value)], { type: 'text/csv' }));
+  a.download = 'scorecard.csv'; a.click();
+};
+</script>
+</body>
+</html>
